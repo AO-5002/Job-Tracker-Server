@@ -21,7 +21,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/user").authenticated()
                         .requestMatchers("/applications").authenticated()
-                        .requestMatchers("/upload").authenticated()
+                        .requestMatchers("/file").authenticated()
                 )
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)  // ADD THIS LINE
