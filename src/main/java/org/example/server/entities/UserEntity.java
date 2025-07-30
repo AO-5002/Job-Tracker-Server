@@ -70,5 +70,5 @@ public class UserEntity {
     private LocalDate updated_at;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobApplicationEntity> transactions = new ArrayList<>();
+    private List<JobApplicationEntity> jobApplications = new ArrayList<>();
 }

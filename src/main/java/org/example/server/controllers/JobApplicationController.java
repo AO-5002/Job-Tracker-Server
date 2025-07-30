@@ -1,17 +1,19 @@
 package org.example.server.controllers;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.example.server.dtos.JobApplicationDto;
-import org.example.server.mappers.JobApplicationMapper;
-import org.example.server.repositories.JobApplicationRepository;
-import org.example.server.repositories.UserRepository;
+import org.example.server.services.JobApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/")
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+@RequestMapping("/applications")
 @CrossOrigin(
         origins = "http://localhost:5173",
         allowedHeaders = "*",
@@ -19,21 +21,47 @@ import java.util.List;
 )
 public class JobApplicationController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final JobApplicationService  jobApplicationService;
 
-    @Autowired
-    private JobApplicationRepository jobApplicationRepository;
+    // API's below:
 
-    @Autowired
-    private JobApplicationMapper jobApplicationMapper;
+    @GetMapping
+    private ResponseEntity<List<JobApplicationDto>> getJobApplications(Authentication auth) {
 
-    // Below are the APIs
+        String userAuth = auth.getName();
+        List<JobApplicationDto> listedApplications = jobApplicationService.getJobApplications(userAuth);
+        return ResponseEntity.ok(listedApplications);
+    }
 
-//    @GetMapping
-//    private ResponseEntity<List<JobApplicationDto>> getJobApplications() {
-//
-//
-//
-//    }
+    @GetMapping("/{id}")
+    private ResponseEntity<JobApplicationDto> getJobApplication(@PathVariable("id") String id, Authentication auth) {
+
+        String authToken = auth.getName();
+        JobApplicationDto jobApplicationDto = jobApplicationService.getJobApplication(id, authToken);
+
+        return ResponseEntity.ok(jobApplicationDto);
+    }
+
+    @PostMapping
+    private ResponseEntity<Void> createApplication(@Valid @RequestBody JobApplicationDto newApplication, Authentication auth){
+        String authToken = auth.getName();
+        jobApplicationService.createApplication(authToken, newApplication);
+
+        return ResponseEntity.status(201).build();
+    }
+
+    @PutMapping("/{id}")
+    private ResponseEntity<Void> updateApplication(@PathVariable("id") String id, @Valid @RequestBody JobApplicationDto newApplication, Authentication auth){
+        String authToken = auth.getName();
+        jobApplicationService.updateApplication(id, authToken, newApplication);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    private ResponseEntity<Void> deleteApplication(@PathVariable("id") String id, Authentication auth){
+        String authToken = auth.getName();
+        jobApplicationService.deleteApplication(id, authToken);
+        return ResponseEntity.status(204).build();
+    }
 }

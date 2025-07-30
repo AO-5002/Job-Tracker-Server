@@ -19,8 +19,8 @@ public class SecurityConfig {
     */
         return http
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/api/public").permitAll()
                         .requestMatchers("/user").authenticated()
+                        .requestMatchers("/applications").authenticated()
                         .requestMatchers("/upload").authenticated()
                 )
                 .cors(withDefaults())
