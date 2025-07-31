@@ -98,6 +98,7 @@ public class JobApplicationService {
         // 3. Update the db with its associated user and save the application
 
         entityApplication.setUser(user);
+
         jobApplicationRepository.save(entityApplication);
     }
 

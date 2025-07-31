@@ -24,10 +24,7 @@ public class UserController {
     private ResponseEntity<UserDto> createUser(@RequestBody @Valid UserDto newUser, Authentication auth) {
         String userAuth = auth.getName();
 
-        // Create user service and perform error handling
-        UserDto createdUser = userService.createUser(userAuth, newUser);
-        return ResponseEntity.ok(createdUser);
+        userService.createUser(userAuth, newUser);
+        return ResponseEntity.status(201).build();
     }
-
-
 }

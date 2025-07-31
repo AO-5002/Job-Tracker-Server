@@ -20,17 +20,21 @@ public class UserService {
     // This creates a user using the @auth and @userDtoParam,
     // where auth is the token and userDtoParam is the new user.
 
-    public UserDto createUser(String auth, UserDto userDtoParam) {
+    public void createUser(String auth, UserDto userDtoParam) {
 
-        // First check if the user exists already.
+        // 1.) First check if the user exists already.
 
         if (userRepository.existsByAuth0_id(auth)) {
             throw new UserAlreadyExistsException("User already exists.");
         }
 
+        // 2. Then, map the dto into a user entity & set the auth token
+
         var dtoToUser = userMapper.userDtoToUser(userDtoParam);
         dtoToUser.setAuth0_id(auth);
+
+        // 3.) Save the user to the db
+
         userRepository.save(dtoToUser);
-        return userMapper.userToUserDto(dtoToUser);
     }
 }

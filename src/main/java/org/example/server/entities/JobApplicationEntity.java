@@ -49,8 +49,7 @@ public class JobApplicationEntity {
 
 
     @Column(
-            name = "location",
-            nullable = false
+            name = "location"
     )
     private String location;
 
