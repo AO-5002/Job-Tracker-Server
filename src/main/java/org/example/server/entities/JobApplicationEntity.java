@@ -9,7 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -93,7 +93,7 @@ public class JobApplicationEntity {
             pattern = "yyyy-MM-dd HH:mm:ss"
     )
     @CreationTimestamp
-    private LocalTime created_at;
+    private LocalDateTime created_at;
 
 
     @Column(
@@ -106,5 +106,5 @@ public class JobApplicationEntity {
             pattern = "yyyy-MM-dd HH:mm:ss"
     )
     @UpdateTimestamp
-    private LocalTime updated_at;
+    private LocalDateTime  updated_at;
 }

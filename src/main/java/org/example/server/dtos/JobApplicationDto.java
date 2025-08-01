@@ -8,6 +8,8 @@ import org.example.server.entities.StatusEnum;
 import org.hibernate.validator.constraints.URL;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Data
@@ -28,5 +30,5 @@ public class JobApplicationDto {
     private String resume_url;
     @URL
     private String cover_letter_url;
-    private LocalDate created_at;
+    private LocalDateTime created_at;
 }

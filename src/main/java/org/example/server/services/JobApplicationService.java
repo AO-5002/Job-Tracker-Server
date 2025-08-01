@@ -85,21 +85,15 @@ public class JobApplicationService {
         return jobApplicationMapper.jobEntityToJobDto(returnedJob);
     }
 
-    public void createApplication(String authToken, JobApplicationDto newApplication){
-
-        // 1. Check if user exists
-
+    public JobApplicationDto createApplication(String authToken, JobApplicationDto newApplication) {
         UserEntity user = getUserBasedOnAuth(authToken);
 
-        // 2. Convert the dto into an entity
-
         JobApplicationEntity entityApplication = jobApplicationMapper.jobDtoToJobEntity(newApplication);
-
-        // 3. Update the db with its associated user and save the application
-
         entityApplication.setUser(user);
 
-        jobApplicationRepository.save(entityApplication);
+        JobApplicationEntity savedEntity = jobApplicationRepository.save(entityApplication);
+
+        return jobApplicationMapper.jobEntityToJobDto(savedEntity);
     }
 
     public void updateApplication(String id, String authToken, JobApplicationDto newApplication){

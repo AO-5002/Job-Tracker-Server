@@ -43,11 +43,11 @@ public class JobApplicationController {
     }
 
     @PostMapping
-    private ResponseEntity<Void> createApplication(@Valid @RequestBody JobApplicationDto newApplication, Authentication auth){
+    private ResponseEntity<JobApplicationDto> createApplication(@Valid @RequestBody JobApplicationDto newApplication, Authentication auth){
         String authToken = auth.getName();
-        jobApplicationService.createApplication(authToken, newApplication);
+        JobApplicationDto createdApplication = jobApplicationService.createApplication(authToken, newApplication);
 
-        return ResponseEntity.status(201).build();
+        return ResponseEntity.status(201).body(createdApplication);
     }
 
     @PutMapping("/{id}")
