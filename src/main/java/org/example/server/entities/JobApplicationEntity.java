@@ -60,18 +60,6 @@ public class JobApplicationEntity {
     )
     private StatusEnum status;
 
-
-    @Column(
-            name = "application_date",
-            nullable = false
-    )
-    @JsonFormat(
-            shape =  JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd HH:mm:ss"
-    )
-    @CreationTimestamp
-    private LocalDate application_date;
-
     @Column(
             name = "job_post_url",
             nullable = false
@@ -82,29 +70,19 @@ public class JobApplicationEntity {
     private String cover_letter_url;
     private String resume_url;
 
+    @Column(name = "application_date", nullable = true)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime application_date;
 
-    @Column(
-            name = "created_at",
-            nullable = false,
-            updatable = false
-    )
-    @JsonFormat(
-            shape =  JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd HH:mm:ss"
-    )
+    @Column(name = "created_at")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     @CreationTimestamp
     private LocalDateTime created_at;
 
-
-    @Column(
-            name = "updated_at",
-            nullable = false,
-            updatable = true
-    )
-    @JsonFormat(
-            shape =  JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd HH:mm:ss"
-    )
+    @Column(name = "updated_at", nullable = false, updatable = true)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     @UpdateTimestamp
-    private LocalDateTime  updated_at;
+    private LocalDateTime updated_at;
+
+
 }

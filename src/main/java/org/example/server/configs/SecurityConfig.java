@@ -22,7 +22,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers("/user").authenticated()
                         .requestMatchers("/applications").authenticated()
+                        .requestMatchers("/applications/{id}").authenticated()
                         .requestMatchers(HttpMethod.POST, "/applications").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/applications/{id}").authenticated()
                         .requestMatchers("/file").authenticated()
                 )
                 .cors(withDefaults())

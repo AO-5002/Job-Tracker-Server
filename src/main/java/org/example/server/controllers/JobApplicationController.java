@@ -3,6 +3,7 @@ package org.example.server.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.server.dtos.JobApplicationDto;
+import org.example.server.dtos.UpdateJobApplicationDto;
 import org.example.server.services.JobApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -50,12 +51,12 @@ public class JobApplicationController {
         return ResponseEntity.status(201).body(createdApplication);
     }
 
-    @PutMapping("/{id}")
-    private ResponseEntity<Void> updateApplication(@PathVariable("id") String id, @Valid @RequestBody JobApplicationDto newApplication, Authentication auth){
+    @PatchMapping("/{id}")
+    private ResponseEntity<JobApplicationDto> updateApplication(@PathVariable("id") String id, @Valid @RequestBody UpdateJobApplicationDto newApplication, Authentication auth){
         String authToken = auth.getName();
-        jobApplicationService.updateApplication(id, authToken, newApplication);
+        JobApplicationDto response = jobApplicationService.updateApplication(id, authToken, newApplication);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body(response);
     }
 
     @DeleteMapping("/{id}")

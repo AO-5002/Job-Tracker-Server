@@ -2,7 +2,9 @@ package org.example.server.services;
 
 import lombok.RequiredArgsConstructor;
 import org.example.server.dtos.JobApplicationDto;
+import org.example.server.dtos.UpdateJobApplicationDto;
 import org.example.server.entities.JobApplicationEntity;
+import org.example.server.entities.StatusEnum;
 import org.example.server.entities.UserEntity;
 import org.example.server.exceptions.job_application.ApplicationNotFound;
 import org.example.server.exceptions.job_application.ForbiddenApplicationAccess;
@@ -14,6 +16,8 @@ import org.example.server.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -64,7 +68,7 @@ public class JobApplicationService {
     }
 
 
-    public JobApplicationDto getJobApplication(@PathVariable("id") String id, String authToken) {
+    public JobApplicationDto getJobApplication(String id, String authToken) {
 
         // 1. Check if the user exists
 
@@ -86,23 +90,38 @@ public class JobApplicationService {
     }
 
     public JobApplicationDto createApplication(String authToken, JobApplicationDto newApplication) {
+
+        // 1. Get the user based on auth token
+
         UserEntity user = getUserBasedOnAuth(authToken);
 
-        JobApplicationEntity entityApplication = jobApplicationMapper.jobDtoToJobEntity(newApplication);
-        entityApplication.setUser(user);
+        // 2. Map the new application (dto) to the entity format
 
+        JobApplicationEntity entityApplication = jobApplicationMapper.jobDtoToJobEntity(newApplication);
+
+        // 3. Set the application to the associated user & save to the db
+
+        entityApplication.setUser(user);
         JobApplicationEntity savedEntity = jobApplicationRepository.save(entityApplication);
+
+        // 4. Check the status & set the application date
+
+        if(savedEntity.getStatus() != StatusEnum.SAVED){
+            savedEntity.setApplication_date(LocalDateTime.now());
+        }
+
+        // 5. Finally, return the saved entity
 
         return jobApplicationMapper.jobEntityToJobDto(savedEntity);
     }
 
-    public void updateApplication(String id, String authToken, JobApplicationDto newApplication){
+    public JobApplicationDto updateApplication(String id, String authToken, UpdateJobApplicationDto newApplication){
 
-        // 1. Check if the user exists
+        // 1. Check if the user exists.
 
         UserEntity user = getUserBasedOnAuth(authToken);
 
-        // 2. Check if the application exists
+        // 2. Check if the application exists and return it.
 
         JobApplicationEntity returnedJob = getJobApplicationById(id);
 
@@ -112,7 +131,7 @@ public class JobApplicationService {
             throw new ForbiddenApplicationAccess("Application access has been denied");
         }
 
-        // 4. Update the fields
+        // 4. Update the fields by comparing the returned entity to the new application fields.
 
         // Job title
         if (newApplication.getJob_title() != null &&
@@ -136,6 +155,13 @@ public class JobApplicationService {
         if (newApplication.getStatus() != null &&
                 !newApplication.getStatus().equals(returnedJob.getStatus())) {
             returnedJob.setStatus(newApplication.getStatus());
+
+            // If the application has been moved from "SAVED" to anything else, set the application date.
+
+            if(newApplication.getStatus() != StatusEnum.SAVED &&
+                    returnedJob.getApplication_date() == null){
+                returnedJob.setApplication_date(LocalDateTime.now());
+            }
         }
 
         // Job Post URL
@@ -156,9 +182,11 @@ public class JobApplicationService {
             returnedJob.setCover_letter_url(newApplication.getCover_letter_url());
         }
 
-        // 5. Save to db
+        // 5. Save to db & set the new date for the updated_at field.
 
+        returnedJob.setUpdated_at(LocalDateTime.now());
         jobApplicationRepository.save(returnedJob);
+        return jobApplicationMapper.jobEntityToJobDto(returnedJob);
     }
 
     public void deleteApplication(String id, String authToken){
