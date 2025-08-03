@@ -6,9 +6,11 @@ import org.example.server.dtos.JobApplicationDto;
 import org.example.server.dtos.UpdateJobApplicationDto;
 import org.example.server.services.JobApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -44,9 +46,27 @@ public class JobApplicationController {
     }
 
     @PostMapping
-    private ResponseEntity<JobApplicationDto> createApplication(@Valid @RequestBody JobApplicationDto newApplication, Authentication auth){
+    private ResponseEntity<JobApplicationDto> createApplication(
+            @RequestParam(name =  "job_title", required = true) String jobTitle,
+            @RequestParam(name = "company_name", required = true) String companyName,
+            @RequestParam(name = "location", required = false) String location,
+            @RequestParam(name = "status", required = true) String status,
+            @RequestParam(name = "job_post_url") String jobPostUrl,
+            @RequestParam(value = "resume_file", required = false) MultipartFile resumeFile,
+            @RequestParam(value = "cover_letter_file", required = false) MultipartFile coverLetterFile,
+            Authentication auth
+    ) {
         String authToken = auth.getName();
-        JobApplicationDto createdApplication = jobApplicationService.createApplication(authToken, newApplication);
+        JobApplicationDto createdApplication = jobApplicationService.createApplication(
+                authToken,
+                jobTitle,
+                companyName,
+                location,
+                status,
+                jobPostUrl,
+                resumeFile,
+                coverLetterFile
+        );
 
         return ResponseEntity.status(201).body(createdApplication);
     }

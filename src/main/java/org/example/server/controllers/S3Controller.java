@@ -1,14 +1,13 @@
 package org.example.server.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.example.server.exceptions.file.FileNotValid;
 import org.example.server.services.S3Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -23,13 +22,13 @@ public class S3Controller {
     private final S3Service s3Service;
 
     @PostMapping
-    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws FileNotValid {
         s3Service.uploadFile(file);
         return ResponseEntity.ok("File uploaded");
     }
 
     @GetMapping("/{filename}")
-    public ResponseEntity<byte[]> download(@PathVariable("filename") String filename) throws IOException {
+    public ResponseEntity<byte[]> download(@PathVariable("filename") String filename) throws FileNotValid {
         byte[] data = s3Service.downloadFile(filename);
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,  "inline; filename=\"" + filename + "\"").body(data);
     }

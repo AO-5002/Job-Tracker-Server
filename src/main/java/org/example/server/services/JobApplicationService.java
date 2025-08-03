@@ -6,6 +6,7 @@ import org.example.server.dtos.UpdateJobApplicationDto;
 import org.example.server.entities.JobApplicationEntity;
 import org.example.server.entities.StatusEnum;
 import org.example.server.entities.UserEntity;
+import org.example.server.exceptions.file.FileNotValid;
 import org.example.server.exceptions.job_application.ApplicationNotFound;
 import org.example.server.exceptions.job_application.ForbiddenApplicationAccess;
 import org.example.server.exceptions.job_application.NoApplicationsFound;
@@ -14,10 +15,10 @@ import org.example.server.mappers.JobApplicationMapper;
 import org.example.server.repositories.JobApplicationRepository;
 import org.example.server.repositories.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,10 +28,11 @@ public class JobApplicationService {
 
     private final UserRepository userRepository;
 
+    private final S3Service s3Service;
+
     private final JobApplicationRepository jobApplicationRepository;
 
     private final JobApplicationMapper jobApplicationMapper;
-
 
     // Helper Methods below:
 
@@ -45,6 +47,32 @@ public class JobApplicationService {
         return jobApplicationRepository.findById(applicationUUID).orElseThrow(() -> new ApplicationNotFound("Application not found."));
     }
 
+    private boolean isValidFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return false;
+        }
+
+        // Check file extension
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            return false;
+        }
+
+        String extension = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+        List<String> allowedExtensions = Arrays.asList("txt", "pdf", "doc", "docx");
+
+        if (!allowedExtensions.contains(extension)) {
+            return false;
+        }
+
+        // Check file size (e.g., max 5MB)
+        if (file.getSize() > 5 * 1024 * 1024) {
+            return false;
+        }
+
+        // Add any other validation rules you need
+        return true;
+    }
 
     // API's below:
 
@@ -89,30 +117,72 @@ public class JobApplicationService {
         return jobApplicationMapper.jobEntityToJobDto(returnedJob);
     }
 
-    public JobApplicationDto createApplication(String authToken, JobApplicationDto newApplication) {
+    public JobApplicationDto createApplication(
+            String authToken,
+            String jobTitle,
+            String companyName,
+            String location,
+            String status,
+            String jobPostUrl,
+            MultipartFile resumeFile,
+            MultipartFile coverLetterFile
+    ) {
 
         // 1. Get the user based on auth token
 
         UserEntity user = getUserBasedOnAuth(authToken);
 
-        // 2. Map the new application (dto) to the entity format
+        // 2) Convert those params into an entity (except for the file stuff)
 
-        JobApplicationEntity entityApplication = jobApplicationMapper.jobDtoToJobEntity(newApplication);
+        JobApplicationEntity newApplication =  new JobApplicationEntity();
+        newApplication.setUser(user);
+        newApplication.setJob_title(jobTitle);
+        newApplication.setCompany_name(companyName);
+        newApplication.setLocation(location);
+        StatusEnum statusEnumValue = StatusEnum.valueOf(status);
+        newApplication.setStatus(statusEnumValue);
+        newApplication.setJob_post_url(jobPostUrl);
 
-        // 3. Set the application to the associated user & save to the db
+        // 3) Extract & save the file names to the entity
 
-        entityApplication.setUser(user);
-        JobApplicationEntity savedEntity = jobApplicationRepository.save(entityApplication);
-
-        // 4. Check the status & set the application date
-
-        if(savedEntity.getStatus() != StatusEnum.SAVED){
-            savedEntity.setApplication_date(LocalDateTime.now());
+        if (resumeFile != null && !resumeFile.isEmpty()) {
+            // File was provided, so validate and process it
+            if (isValidFile(resumeFile)) {
+                s3Service.uploadFile(resumeFile);
+                String resumeFileName = resumeFile.getOriginalFilename();
+                newApplication.setResume_url(resumeFileName);
+            } else {
+                throw new FileNotValid("Resume file is not valid");
+            }
+        } else {
+            // No file provided - that's okay, just set to null
+            newApplication.setResume_url(null);
         }
 
-        // 5. Finally, return the saved entity
+        if (coverLetterFile != null && !coverLetterFile.isEmpty()) {
+            // File was provided, so validate and process it
+            if (isValidFile(coverLetterFile)) {
+                s3Service.uploadFile(coverLetterFile);
+                String coverLetterFileName = coverLetterFile.getOriginalFilename();
+                newApplication.setCover_letter_url(coverLetterFileName);
+            } else {
+                throw new FileNotValid("Cover letter file is not valid");
+            }
+        } else {
+            // No file provided - that's okay, just set to null
+            newApplication.setCover_letter_url(null);
+        }
 
-        return jobApplicationMapper.jobEntityToJobDto(savedEntity);
+        // 4) Check if the status is anything but SAVED to set the application date
+
+        if(StatusEnum.valueOf(status) != StatusEnum.SAVED){
+            newApplication.setApplication_date(LocalDateTime.now());
+        }
+
+        // 5) Save to the db
+
+        jobApplicationRepository.save(newApplication);
+        return jobApplicationMapper.jobEntityToJobDto(newApplication);
     }
 
     public JobApplicationDto updateApplication(String id, String authToken, UpdateJobApplicationDto newApplication){

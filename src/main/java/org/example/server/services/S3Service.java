@@ -1,5 +1,7 @@
 package org.example.server.services;
 
+import lombok.RequiredArgsConstructor;
+import org.example.server.exceptions.file.FileNotValid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,20 +16,24 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.IOException;
 
 @Service
+@RequiredArgsConstructor
 public class S3Service {
 
-    @Autowired
-    private S3Client s3Client;
+    private final S3Client s3Client;
 
     @Value("${aws.bucket.name}")
     private String bucketName;
 
-    public void uploadFile(MultipartFile file) throws IOException {
-        s3Client.putObject(PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(file.getOriginalFilename())
-                .build(),
-                RequestBody.fromBytes(file.getBytes()));
+    public void uploadFile(MultipartFile file) throws FileNotValid {
+        try {
+            s3Client.putObject(PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(file.getOriginalFilename())
+                            .build(),
+                    RequestBody.fromBytes(file.getBytes()));
+        } catch (IOException e) {
+            throw new FileNotValid("Failed to read file bytes: " + e.getMessage());
+        }
     }
 
     public byte[] downloadFile(String fileName) {
