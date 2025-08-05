@@ -28,7 +28,6 @@ public class JobApplicationEntity {
     )
     private UUID id;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_id")
     private UserEntity user;
@@ -49,7 +48,8 @@ public class JobApplicationEntity {
 
 
     @Column(
-            name = "location"
+            name = "location",
+            nullable = true
     )
     private String location;
 
@@ -67,7 +67,15 @@ public class JobApplicationEntity {
     private String job_post_url;
 
     // S3 Related
+    @Column(
+            name = "cover_letter_url",
+            nullable = true
+    )
     private String cover_letter_url;
+    @Column(
+            name = "resume_url",
+            nullable = true
+    )
     private String resume_url;
 
     @Column(name = "application_date", nullable = true)

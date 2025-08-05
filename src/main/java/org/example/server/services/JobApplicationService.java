@@ -132,6 +132,14 @@ public class JobApplicationService {
 
         UserEntity user = getUserBasedOnAuth(authToken);
 
+
+        System.out.println("Received parameters:");
+        System.out.println("jobTitle: '" + jobTitle + "'");
+        System.out.println("companyName: '" + companyName + "'");
+        System.out.println("location: '" + location + "'");
+        System.out.println("status: '" + status + "'");
+        System.out.println("jobPostUrl: '" + jobPostUrl + "'");
+
         // 2) Convert those params into an entity (except for the file stuff)
 
         JobApplicationEntity newApplication =  new JobApplicationEntity();
