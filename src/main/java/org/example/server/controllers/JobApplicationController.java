@@ -71,10 +71,30 @@ public class JobApplicationController {
         return ResponseEntity.status(201).body(createdApplication);
     }
 
-    @PatchMapping("/{id}")
-    private ResponseEntity<JobApplicationDto> updateApplication(@PathVariable("id") String id, @Valid @RequestBody UpdateJobApplicationDto newApplication, Authentication auth){
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    private ResponseEntity<JobApplicationDto> updateApplication(
+            @PathVariable("id") String id,
+            @RequestParam(name =  "job_title", required = false) String jobTitle,
+            @RequestParam(name = "company_name", required = false) String companyName,
+            @RequestParam(name = "location", required = false) String location,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "job_post_url", required = false) String jobPostUrl,
+            @RequestParam(value = "resume_file", required = false) MultipartFile resumeFile,
+            @RequestParam(value = "cover_letter_file", required = false) MultipartFile coverLetterFile,
+            Authentication auth
+    ){
         String authToken = auth.getName();
-        JobApplicationDto response = jobApplicationService.updateApplication(id, authToken, newApplication);
+        JobApplicationDto response = jobApplicationService.updateApplication(
+                id,
+                authToken,
+                jobTitle,
+                companyName,
+                location,
+                status,
+                jobPostUrl,
+                resumeFile,
+                coverLetterFile
+        );
 
         return ResponseEntity.ok().body(response);
     }

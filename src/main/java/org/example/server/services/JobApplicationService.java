@@ -6,6 +6,7 @@ import org.example.server.dtos.UpdateJobApplicationDto;
 import org.example.server.entities.JobApplicationEntity;
 import org.example.server.entities.StatusEnum;
 import org.example.server.entities.UserEntity;
+import org.example.server.exceptions.ApplicationException;
 import org.example.server.exceptions.file.FileNotValid;
 import org.example.server.exceptions.job_application.ApplicationNotFound;
 import org.example.server.exceptions.job_application.ForbiddenApplicationAccess;
@@ -14,6 +15,7 @@ import org.example.server.exceptions.user.UserNotFoundException;
 import org.example.server.mappers.JobApplicationMapper;
 import org.example.server.repositories.JobApplicationRepository;
 import org.example.server.repositories.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -132,14 +134,6 @@ public class JobApplicationService {
 
         UserEntity user = getUserBasedOnAuth(authToken);
 
-
-        System.out.println("Received parameters:");
-        System.out.println("jobTitle: '" + jobTitle + "'");
-        System.out.println("companyName: '" + companyName + "'");
-        System.out.println("location: '" + location + "'");
-        System.out.println("status: '" + status + "'");
-        System.out.println("jobPostUrl: '" + jobPostUrl + "'");
-
         // 2) Convert those params into an entity (except for the file stuff)
 
         JobApplicationEntity newApplication =  new JobApplicationEntity();
@@ -154,31 +148,25 @@ public class JobApplicationService {
         // 3) Extract & save the file names to the entity
 
         if (resumeFile != null && !resumeFile.isEmpty()) {
-            // File was provided, so validate and process it
             if (isValidFile(resumeFile)) {
-                s3Service.uploadFile(resumeFile);
+                s3Service.uploadFile(resumeFile, "resume_folder/");
                 String resumeFileName = resumeFile.getOriginalFilename();
-                newApplication.setResume_url(resumeFileName);
+                String folderLocationFileResume = "resumes/" + resumeFileName;
+                newApplication.setResume_url(folderLocationFileResume);
             } else {
                 throw new FileNotValid("Resume file is not valid");
             }
-        } else {
-            // No file provided - that's okay, just set to null
-            newApplication.setResume_url(null);
         }
 
         if (coverLetterFile != null && !coverLetterFile.isEmpty()) {
-            // File was provided, so validate and process it
             if (isValidFile(coverLetterFile)) {
-                s3Service.uploadFile(coverLetterFile);
+                s3Service.uploadFile(coverLetterFile, "jobcover_folder/");
                 String coverLetterFileName = coverLetterFile.getOriginalFilename();
-                newApplication.setCover_letter_url(coverLetterFileName);
+                String folderLocationFileCoverLetter = "cover_letters/" + coverLetterFileName;
+                newApplication.setCover_letter_url(folderLocationFileCoverLetter);
             } else {
                 throw new FileNotValid("Cover letter file is not valid");
             }
-        } else {
-            // No file provided - that's okay, just set to null
-            newApplication.setCover_letter_url(null);
         }
 
         // 4) Check if the status is anything but SAVED to set the application date
@@ -193,7 +181,17 @@ public class JobApplicationService {
         return jobApplicationMapper.jobEntityToJobDto(newApplication);
     }
 
-    public JobApplicationDto updateApplication(String id, String authToken, UpdateJobApplicationDto newApplication){
+    public JobApplicationDto updateApplication(
+            String id,
+            String authToken,
+            String jobTitle,
+            String companyName,
+            String location,
+            String status,
+            String jobPostUrl,
+            MultipartFile resumeFile,
+            MultipartFile coverLetterFile
+    ){
 
         // 1. Check if the user exists.
 
@@ -212,52 +210,65 @@ public class JobApplicationService {
         // 4. Update the fields by comparing the returned entity to the new application fields.
 
         // Job title
-        if (newApplication.getJob_title() != null &&
-                !newApplication.getJob_title().equals(returnedJob.getJob_title())) {
-            returnedJob.setJob_title(newApplication.getJob_title());
+        if(jobTitle != null && !jobTitle.equals(returnedJob.getJob_title())) {
+            returnedJob.setJob_title(jobTitle);
         }
 
         // Company name
-        if (newApplication.getCompany_name() != null &&
-                !newApplication.getCompany_name().equals(returnedJob.getCompany_name())) {
-            returnedJob.setCompany_name(newApplication.getCompany_name());
+        if(companyName != null && !companyName.equals(returnedJob.getCompany_name())) {
+            returnedJob.setCompany_name(companyName);
         }
 
         // Location
-        if (newApplication.getLocation() != null &&
-                !newApplication.getLocation().equals(returnedJob.getLocation())) {
-            returnedJob.setLocation(newApplication.getLocation());
+        if(location != null && !location.equals(returnedJob.getLocation())) {
+            returnedJob.setLocation(location);
         }
 
         // Status
-        if (newApplication.getStatus() != null &&
-                !newApplication.getStatus().equals(returnedJob.getStatus())) {
-            returnedJob.setStatus(newApplication.getStatus());
 
-            // If the application has been moved from "SAVED" to anything else, set the application date.
+        if (status != null && !status.isBlank()) {
+            try {
+                StatusEnum parsedStatus = StatusEnum.valueOf(status.trim());
+                if (!parsedStatus.equals(returnedJob.getStatus())) {
+                    returnedJob.setStatus(parsedStatus);
 
-            if(newApplication.getStatus() != StatusEnum.SAVED &&
-                    returnedJob.getApplication_date() == null){
-                returnedJob.setApplication_date(LocalDateTime.now());
+                    if (parsedStatus != StatusEnum.SAVED && returnedJob.getApplication_date() == null) {
+                        returnedJob.setApplication_date(LocalDateTime.now());
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                throw new ApplicationException("Invalid status: " + status, HttpStatus.NOT_FOUND);
             }
         }
 
         // Job Post URL
-        if (newApplication.getJob_post_url() != null &&
-                !newApplication.getJob_post_url().equals(returnedJob.getJob_post_url())) {
-            returnedJob.setJob_post_url(newApplication.getJob_post_url());
+        if(jobPostUrl != null && !jobPostUrl.equals(returnedJob.getJob_post_url())) {
+            returnedJob.setJob_post_url(jobPostUrl);
         }
 
-        // Resume URL
-        if (newApplication.getResume_url() != null &&
-                !newApplication.getResume_url().equals(returnedJob.getResume_url())) {
-            returnedJob.setResume_url(newApplication.getResume_url());
+        // Resume URL & Cover Letter URL
+        // 5. Extract & save the file names to the entity
+
+        if (resumeFile != null && !resumeFile.isEmpty()) {
+            if (isValidFile(resumeFile)) {
+                s3Service.uploadFile(resumeFile, "resume_folder/");
+                String resumeFileName = resumeFile.getOriginalFilename();
+                String folderLocationFileResume = "resumes/" + resumeFileName;
+                returnedJob.setResume_url(folderLocationFileResume);
+            } else {
+                throw new FileNotValid("Resume file is not valid");
+            }
         }
 
-        // Cover Letter URL
-        if (newApplication.getCover_letter_url() != null &&
-                !newApplication.getCover_letter_url().equals(returnedJob.getCover_letter_url())) {
-            returnedJob.setCover_letter_url(newApplication.getCover_letter_url());
+        if (coverLetterFile != null && !coverLetterFile.isEmpty()) {
+            if (isValidFile(coverLetterFile)) {
+                s3Service.uploadFile(coverLetterFile, "jobcover_folder/");
+                String coverLetterFileName = coverLetterFile.getOriginalFilename();
+                String folderLocationFileCoverLetter = "cover_letters/" + coverLetterFileName;
+                returnedJob.setCover_letter_url(folderLocationFileCoverLetter);
+            } else {
+                throw new FileNotValid("Cover letter file is not valid");
+            }
         }
 
         // 5. Save to db & set the new date for the updated_at field.

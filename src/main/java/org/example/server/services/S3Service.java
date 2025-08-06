@@ -24,11 +24,14 @@ public class S3Service {
     @Value("${aws.bucket.name}")
     private String bucketName;
 
-    public void uploadFile(MultipartFile file) throws FileNotValid {
+    public void uploadFile(MultipartFile file, String folderDestination) throws FileNotValid {
         try {
+            String fileName = file.getOriginalFilename();
+            String fullPath = folderDestination + fileName;
+
             s3Client.putObject(PutObjectRequest.builder()
                             .bucket(bucketName)
-                            .key(file.getOriginalFilename())
+                            .key(fullPath)
                             .build(),
                     RequestBody.fromBytes(file.getBytes()));
         } catch (IOException e) {

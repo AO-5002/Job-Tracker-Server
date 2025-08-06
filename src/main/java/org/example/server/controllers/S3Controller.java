@@ -21,11 +21,11 @@ public class S3Controller {
 
     private final S3Service s3Service;
 
-    @PostMapping
-    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws FileNotValid {
-        s3Service.uploadFile(file);
-        return ResponseEntity.ok("File uploaded");
-    }
+//    @PostMapping
+//    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file) throws FileNotValid {
+//        s3Service.uploadFile(file);
+//        return ResponseEntity.ok("File uploaded");
+//    }
 
     @GetMapping("/{filename}")
     public ResponseEntity<byte[]> download(@PathVariable("filename") String filename) throws FileNotValid {
